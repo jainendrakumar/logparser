@@ -27,13 +27,13 @@ import java.util.regex.Pattern;
  */
 public class TransactionLogParser {
     private static final Logger logger = LoggerFactory.getLogger(TransactionLogParser.class);
-
+    
     // Regular expression to extract timestamp from filename
     private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("(\\d{8})_(\\d{4})");
-
+    
     // Date formatter for parsing time strings
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ssXXX");
-
+    
     /**
      * Parses a single transaction log file and returns a list of transactions.
      *
@@ -43,17 +43,17 @@ public class TransactionLogParser {
      */
     public List<Transaction> parseFile(File file) throws IOException {
         logger.info("Parsing transaction log file: {}", file.getName());
-
+        
         List<Transaction> transactions = new ArrayList<>();
-
+        
         try (Reader reader = new FileReader(file);
              CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader())) {
-
+            
             for (CSVRecord record : csvParser) {
                 try {
                     Transaction transaction = parseRecord(record);
                     transaction.setSourceFile(file.getName());
-
+                    
                     // Extract date from filename if possible
                     LocalDate fileDate = extractDateFromFilename(file.getName());
                     if (fileDate != null && transaction.getStartTime() != null) {
@@ -61,18 +61,18 @@ public class TransactionLogParser {
                         LocalTime time = transaction.getStartTime().toLocalTime();
                         transaction.setStartTime(LocalDateTime.of(fileDate, time));
                     }
-
+                    
                     transactions.add(transaction);
                 } catch (Exception e) {
                     logger.warn("Error parsing record: {}", e.getMessage());
                 }
             }
         }
-
+        
         logger.info("Parsed {} transactions from file: {}", transactions.size(), file.getName());
         return transactions;
     }
-
+    
     /**
      * Parses multiple transaction log files and returns a combined list of transactions.
      *
@@ -81,7 +81,7 @@ public class TransactionLogParser {
      */
     public List<Transaction> parseFiles(List<File> files) {
         List<Transaction> allTransactions = new ArrayList<>();
-
+        
         for (File file : files) {
             try {
                 List<Transaction> fileTransactions = parseFile(file);
@@ -90,11 +90,11 @@ public class TransactionLogParser {
                 logger.error("Error parsing file {}: {}", file.getName(), e.getMessage());
             }
         }
-
+        
         logger.info("Parsed a total of {} transactions from {} files", allTransactions.size(), files.size());
         return allTransactions;
     }
-
+    
     /**
      * Parses a CSV record into a Transaction object.
      *
@@ -103,12 +103,12 @@ public class TransactionLogParser {
      */
     private Transaction parseRecord(CSVRecord record) {
         Transaction transaction = new Transaction();
-
+        
         // Parse basic transaction information
         transaction.setTransactionId(record.get("transactionid"));
         transaction.setTransactionKind(record.get("transactionkind"));
         transaction.setStatus(record.get("status"));
-
+        
         // Parse thread and action information if available
         if (record.isMapped("threadname")) {
             transaction.setThreadName(record.get("threadname"));
@@ -116,7 +116,7 @@ public class TransactionLogParser {
         if (record.isMapped("actionelementname")) {
             transaction.setActionElementName(record.get("actionelementname"));
         }
-
+        
         // Parse time components
         if (record.isMapped("length")) {
             transaction.setLength(parseLongOrDefault(record.get("length"), 0));
@@ -136,7 +136,7 @@ public class TransactionLogParser {
         if (record.isMapped("streamtime")) {
             transaction.setStreamTime(parseLongOrDefault(record.get("streamtime"), 0));
         }
-
+        
         // Parse memory components
         if (record.isMapped("procmem")) {
             transaction.setProcMem(parseLongOrDefault(record.get("procmem"), 0));
@@ -156,7 +156,7 @@ public class TransactionLogParser {
         if (record.isMapped("freememory")) {
             transaction.setFreeMemory(parseLongOrDefault(record.get("freememory"), 0));
         }
-
+        
         // Parse start time
         if (record.isMapped("starttime")) {
             String startTimeStr = record.get("starttime");
@@ -168,10 +168,10 @@ public class TransactionLogParser {
                 logger.warn("Error parsing start time: {}", startTimeStr);
             }
         }
-
+        
         return transaction;
     }
-
+    
     /**
      * Extracts the date from a filename using a regular expression pattern.
      *
@@ -193,7 +193,7 @@ public class TransactionLogParser {
         }
         return null;
     }
-
+    
     /**
      * Parses a string to a long value, returning a default value if parsing fails.
      *
